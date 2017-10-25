@@ -22,8 +22,15 @@
     "url": "https://github.com/jridgewell/safe-decode-uri-component/issues"
   },
   "homepage": "https://github.com/jridgewell/safe-decode-uri-component#readme",
+  "engines" : {
+    "node" : ">=8.6.0"
+  },
   "devDependencies": {
     "benchmark": "^2.1.4",
     "microtime": "^2.1.6"
+  },
+  "dependencies": {
+    "bindings": "^1.3.0",
+    "node-gyp": "^3.6.2"
   }
 }
