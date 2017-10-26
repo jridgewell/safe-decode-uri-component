@@ -5,7 +5,10 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node tests/index",
-    "benchmark": "node benchmark"
+    "benchmark": "node benchmark",
+    "install": "prebuild-install || node-gyp rebuild",
+    "rebuild": "prebuild --compile",
+    "prebuild": "prebuild --all --strip --verbose"
   },
   "repository": {
     "type": "git",
@@ -22,15 +25,17 @@
     "url": "https://github.com/jridgewell/safe-decode-uri-component/issues"
   },
   "homepage": "https://github.com/jridgewell/safe-decode-uri-component#readme",
-  "engines" : {
-    "node" : ">=8.6.0"
+  "engines": {
+    "node": ">=8.6.0"
   },
   "devDependencies": {
     "benchmark": "^2.1.4",
-    "microtime": "^2.1.6"
+    "microtime": "^2.1.6",
+    "prebuild": "^6.2.2"
   },
   "dependencies": {
     "bindings": "^1.3.0",
-    "node-gyp": "^3.6.2"
+    "node-gyp": "^3.6.2",
+    "prebuild-install": "^2.3.0"
   }
 }
