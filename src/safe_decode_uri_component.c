@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-char16_t* strchr16(const char16_t* str, const char16_t c) {
+char16_t *strchr16(const char16_t *str, const char16_t c) {
   while (*str != c) {
     if (!*str++) {
       return NULL;
     }
   }
-  return (char16_t*) str;
+  return (char16_t *)str;
 }
 
 uint8_t hex_char_to_int(const char16_t c, const uint8_t shift) {
@@ -24,7 +24,7 @@ uint8_t hex_char_to_int(const char16_t c, const uint8_t shift) {
   }
 }
 
-char16_t* shift_chars(char16_t* dest, char16_t* src, size_t n) {
+char16_t *shift_chars(char16_t *dest, char16_t *src, size_t n) {
   memmove(dest, src, n * sizeof(char16_t));
   return dest + n;
 }
@@ -36,30 +36,31 @@ char16_t* shift_chars(char16_t* dest, char16_t* src, size_t n) {
  */
 #define SAFE_DECODE_UTF8_ACCEPT 0
 #define SAFE_DECODE_UTF8_REJECT 12
-uint32_t c_utf8_decode(uint8_t* state, const uint32_t codep, const uint8_t byte) {
+uint32_t c_utf8_decode(uint8_t *state, const uint32_t codep, const uint8_t byte) {
   static const uint8_t UTF8_DATA[] = {
-    // The first part of the table maps bytes to character classes that
-    // to reduce the size of the transition table and create bitmasks.
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,
-    7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,  7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-    8,8,2,2,2,2,2,2,2,2,2,2,2,2,2,2,  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-    10,3,3,3,3,3,3,3,3,3,3,3,3,4,3,3, 11,6,6,6,5,8,8,8,8,8,8,8,8,8,8,8,
+      // The first part of the table maps bytes to character classes that
+      // to reduce the size of the transition table and create bitmasks.
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+      9, 9, 9, 9, 9, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+      7, 7, 7, 7, 7, 7, 8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+      2, 2, 2, 2, 2, 2, 2, 10, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 11, 6, 6, 6, 5, 8, 8, 8,
+      8, 8, 8, 8, 8, 8, 8, 8,
 
-    // The second part is a transition table that maps a combination
-    // of a state of the automaton and a character class to a state.
-    0,12,24,36,60,96,84,12,12,12,48,72, 12,12,12,12,12,12,12,12,12,12,12,12,
-    12, 0,12,12,12,12,12, 0,12, 0,12,12, 12,24,12,12,12,12,12,24,12,24,12,12,
-    12,12,12,12,12,12,12,24,12,12,12,12, 12,24,12,12,12,12,12,12,12,24,12,12,
-    12,12,12,12,12,12,12,36,12,36,12,12, 12,36,12,12,12,12,12,36,12,36,12,12,
-    12,36,12,12,12,12,12,12,12,12,12,12,
+      // The second part is a transition table that maps a combination
+      // of a state of the automaton and a character class to a state.
+      0, 12, 24, 36, 60, 96, 84, 12, 12, 12, 48, 72, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+      12, 0, 12, 12, 12, 12, 12, 0, 12, 0, 12, 12, 12, 24, 12, 12, 12, 12, 12, 24, 12, 24, 12, 12,
+      12, 12, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, 12, 12, 12, 24, 12,
+      12, 12, 12, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, 12, 36, 12, 12, 12, 12, 12, 36, 12, 36,
+      12, 12, 12, 36, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
 
-    // The third part maps the current character class to a mask that needs
-    // to apply to it.
-    0x7F, 0x3F, 0x1F, 0x0F, 0x0F, 0x07, 0x07, 0x3F, 0x00, 0x3F, 0x0F, 0x07,
+      // The third part maps the current character class to a mask that needs
+      // to apply to it.
+      0x7F, 0x3F, 0x1F, 0x0F, 0x0F, 0x07, 0x07, 0x3F, 0x00, 0x3F, 0x0F, 0x07,
   };
   uint8_t type = UTF8_DATA[byte];
   uint8_t mask = UTF8_DATA[364 + type];
@@ -68,12 +69,12 @@ uint32_t c_utf8_decode(uint8_t* state, const uint32_t codep, const uint8_t byte)
   return (codep << 6) | (byte & mask);
 }
 
-size_t safe_decode_utf8(char16_t* encoded, const size_t length) {
-  const char16_t* end = encoded + length;
-  char16_t* k = strchr16(encoded, '%');
-  char16_t* start_of_octets = k;
-  char16_t* last = encoded;
-  char16_t* index = encoded;
+size_t safe_decode_utf8(char16_t *encoded, const size_t length) {
+  const char16_t *end = encoded + length;
+  char16_t *k = strchr16(encoded, '%');
+  char16_t *start_of_octets = k;
+  char16_t *last = encoded;
+  char16_t *index = encoded;
   uint32_t codepoint = 0;
   uint8_t state = SAFE_DECODE_UTF8_ACCEPT;
 
@@ -83,41 +84,42 @@ size_t safe_decode_utf8(char16_t* encoded, const size_t length) {
     codepoint = c_utf8_decode(&state, codepoint, high | low);
 
     switch (state) {
-      case SAFE_DECODE_UTF8_ACCEPT:
-        index = shift_chars(index, last, start_of_octets - last);
+    case SAFE_DECODE_UTF8_ACCEPT:
+      index = shift_chars(index, last, start_of_octets - last);
 
-        if (codepoint <= 0xFFFF) {
-          *index = codepoint;
-          index++;
-        } else {
-          *index = (0xD7C0 + (codepoint >> 10));
-          index++;
-          *index = (0xDC00 + (codepoint & 0x3FF));
-          index++;
-        }
+      if (codepoint <= 0xFFFF) {
+        *index = codepoint;
+        index++;
+      } else {
+        *index = (0xD7C0 + (codepoint >> 10));
+        index++;
+        *index = (0xDC00 + (codepoint & 0x3FF));
+        index++;
+      }
 
-        last = k + 3;
-        k = start_of_octets = strchr16(last, '%');
-        codepoint = 0;
+      last = k + 3;
+      k = start_of_octets = strchr16(last, '%');
+      codepoint = 0;
+      break;
+
+    default:
+      k += 3;
+      if (k < end && *k == '%') {
         break;
+      }
 
-      default:
-        k += 3;
-        if (k < end && *k == '%') break;
-
-        // Intentional fall-through
-      case SAFE_DECODE_UTF8_REJECT:
-        k = start_of_octets = strchr16(k + 1, '%');
-        codepoint = 0;
-        state = SAFE_DECODE_UTF8_ACCEPT;
-        break;
+    // Intentional fall-through
+    case SAFE_DECODE_UTF8_REJECT:
+      k = start_of_octets = strchr16(k + 1, '%');
+      codepoint = 0;
+      state = SAFE_DECODE_UTF8_ACCEPT;
+      break;
     }
   }
 
   index = shift_chars(index, last, end - last);
   return index - encoded;
 }
-
 
 napi_value decode_uri_component(napi_env env, napi_callback_info info) {
   napi_status status;
@@ -137,7 +139,7 @@ napi_value decode_uri_component(napi_env env, napi_callback_info info) {
     return NULL;
   }
 
-  char16_t* encoded = malloc((length + 1) * sizeof(char16_t));
+  char16_t *encoded = malloc((length + 1) * sizeof(char16_t));
   if (encoded == NULL) {
     napi_throw_error(env, NULL, "Unable to allocate string space");
     return NULL;
