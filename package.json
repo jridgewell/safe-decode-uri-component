@@ -28,6 +28,7 @@
   "engines": {
     "node": ">=8.6.0"
   },
+  "gypfile": true,
   "devDependencies": {
     "benchmark": "^2.1.4",
     "microtime": "^2.1.6",
