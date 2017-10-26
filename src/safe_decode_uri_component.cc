@@ -1,18 +1,18 @@
-#include <node_api.h>
+#include <node.h>
 #include <stdlib.h>
 #include <string.h>
 
 /**
- * The equivalent of strchr for char16_t strings.
+ * The equivalent of strchr for uint16_t strings.
  * http://www.cplusplus.com/reference/cstring/strchr/
  */
-char16_t *strchr16(const char16_t *str, const char16_t c) {
+uint16_t *strchr16(const uint16_t *str, const uint16_t c) {
   while (*str != c) {
     if (!*str++) {
       return NULL;
     }
   }
-  return (char16_t *)str;
+  return (uint16_t *)str;
 }
 
 /**
@@ -21,7 +21,7 @@ char16_t *strchr16(const char16_t *str, const char16_t c) {
  * If an invalid hex char is encountered, this returns `255`, which is guaranteed
  * to be rejected by the decoder FSM later on.
  */
-uint8_t hex_char_to_int(const char16_t c, const uint8_t shift) {
+uint8_t hex_char_to_int(const uint16_t c, const uint8_t shift) {
   switch (c) {
   case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
     return (c - '0') << shift;
@@ -39,8 +39,8 @@ uint8_t hex_char_to_int(const char16_t c, const uint8_t shift) {
  * to the current decoded index. This is necessary because, as we decode percent-encoded
  * values, we take up less space.
  */
-char16_t *shift_chars(char16_t *dest, char16_t *src, size_t n) {
-  memmove(dest, src, n * sizeof(char16_t));
+uint16_t *shift_chars(uint16_t *dest, uint16_t *src, size_t n) {
+  memmove(dest, src, n * sizeof(uint16_t));
   return dest + n;
 }
 
@@ -90,24 +90,24 @@ uint32_t c_utf8_decode(uint8_t *state, const uint32_t codep, const uint8_t byte)
  * This returns the final length of the decoded string. If nothing is decoded, it
  * returns `0`.
  */
-size_t safe_decode_utf8(char16_t *encoded, const size_t length) {
+size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
   // The end of the buffer, used for simple out-of-bounds checking.
-  const char16_t *end = encoded + length;
+  const uint16_t *end = encoded + length;
 
   // The current octet that we are decoding.
-  char16_t *k = strchr16(encoded, '%');
+  uint16_t *k = strchr16(encoded, '%');
 
   // The position of the first octet in this series.
-  char16_t *start_of_octets = k;
+  uint16_t *start_of_octets = k;
 
   // The position of the first character after the last decoded octet.
   // Everything from this point on (up to the iteration index) will need to
   // be moved leftwards if a new valid octet series is encountered.
-  char16_t *last = encoded;
+  uint16_t *last = encoded;
 
   // The current "insertion" pointer, where we move our decoded and normal
   // characters.
-  char16_t *index = encoded;
+  uint16_t *index = encoded;
 
   // The current octet series' accumulated code point.
   uint32_t codepoint = 0;
@@ -186,78 +186,45 @@ size_t safe_decode_utf8(char16_t *encoded, const size_t length) {
  * This is the C-to-JS interface, extracting the string param from the call,
  * decoding it, then returning the decoded value.
  */
-napi_value decode_uri_component(napi_env env, napi_callback_info info) {
-  napi_status status;
-  size_t argc = 1;
-  napi_value argv[1];
+void decode_uri_component(const v8::FunctionCallbackInfo<v8::Value> &args) {
+  v8::Isolate *isolate = args.GetIsolate();
 
-  // Get the arguments.
-  status = napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Unable to get arguments");
-    return NULL;
+  if (args.Length() != 1) {
+    isolate->ThrowException(
+        v8::Exception::TypeError(v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
   }
 
-  // Get the length of the encoded string.
-  size_t length;
-  status = napi_get_value_string_utf16(env, argv[0], NULL, 0, &length);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Unable to get encoded string length");
-    return NULL;
+  if (!args[0]->IsString()) {
+    isolate->ThrowException(
+        v8::Exception::TypeError(v8::String::NewFromUtf8(isolate, "Expected string argument")));
+    return;
   }
 
-  // Allocate a full buffer for the string.
-  char16_t *encoded = malloc((length + 1) * sizeof(char16_t));
-  if (encoded == NULL) {
-    napi_throw_error(env, NULL, "Unable to allocate string space");
-    return NULL;
-  }
-  encoded[length] = '\0';
-
-  // Extract the string into the buffer.
-  status = napi_get_value_string_utf16(env, argv[0], encoded, length + 1, NULL);
-  if (status != napi_ok) {
-    free(encoded);
-    napi_throw_error(env, NULL, "Unable to get encoded string");
-    return NULL;
-  }
+  v8::String::Value encodedWrapper(args[0]->ToString());
+  size_t length = encodedWrapper.length();
+  uint16_t *encoded = *encodedWrapper;
 
   // Decode.
   length = safe_decode_utf8(encoded, length);
 
   // If we didn't decode anything, return the same JS string instance.
   if (length == 0) {
-    free(encoded);
-    return argv[0];
-  }
-
-  // Create a new JS string to hold the decoded string.
-  napi_value decoded;
-  status = napi_create_string_utf16(env, encoded, length, &decoded);
-  free(encoded);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Unable to create decoded string");
-    return NULL;
+    args.GetReturnValue().Set(args[0]);
+    return;
   }
 
   // Return it.
-  return decoded;
+  args.GetReturnValue().Set(
+      v8::String::NewFromTwoByte(isolate, encoded, v8::String::kNormalString, length));
 }
 
 /**
  * This sets up the exported module.
- * We only export the decoder function as "default" CJS export, without any
- * named properties.
+ * We only export the decoder function as "decode" property.
  */
-napi_value Init(napi_env env, napi_value exports) {
-  napi_value decode;
-
-  napi_status status = napi_create_function(env, NULL, 0, decode_uri_component, NULL, &decode);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Unable to make decode function");
-  }
-
-  return decode;
+void Init(v8::Local<v8::Object> exports, v8::Local<v8::Object> module) {
+  NODE_SET_METHOD(module, "exports", decode_uri_component);
 }
 
-NAPI_MODULE(NODE_GYP_MODULE_NAME, Init)
+NODE_MODULE(NODE_GYP_MODULE_NAME, Init)
