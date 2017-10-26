@@ -23,14 +23,14 @@ char16_t *strchr16(const char16_t *str, const char16_t c) {
  */
 uint8_t hex_char_to_int(const char16_t c, const uint8_t shift) {
   switch (c) {
-    case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-      return (c - '0') << shift;
-    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-      return (c - 'A' + 10) << shift;
-    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-      return (c - 'a' + 10) << shift;
-    default:
-      return 255;
+  case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+    return (c - '0') << shift;
+  case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+    return (c - 'A' + 10) << shift;
+  case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+    return (c - 'a' + 10) << shift;
+  default:
+    return 255;
   }
 }
 
