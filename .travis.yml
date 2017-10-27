@@ -20,7 +20,6 @@ addons:
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CXX=g++-4.8; fi
 
-script:
-  - npm test
+after_success:
   - npm install prebuild-ci
   - ./node_modules/.bin/prebuild-ci
