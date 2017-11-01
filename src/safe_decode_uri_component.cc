@@ -6,9 +6,9 @@
  * The equivalent of strchr for uint16_t strings.
  * http://www.cplusplus.com/reference/cstring/strchr/
  */
-uint16_t *strchr16(const uint16_t *str, const uint16_t c) {
+uint16_t *strchr16(const uint16_t *str, const uint16_t c, const uint16_t *end) {
   while (*str != c) {
-    if (!*str++) {
+    if (++str >= end) {
       return NULL;
     }
   }
@@ -95,7 +95,7 @@ size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
   const uint16_t *end = encoded + length;
 
   // The current octet that we are decoding.
-  uint16_t *k = strchr16(encoded, '%');
+  uint16_t *k = strchr16(encoded, '%', end);
 
   // The position of the first octet in this series.
   uint16_t *start_of_octets = k;
@@ -148,7 +148,7 @@ size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
       // Now, the last unmoved character is the next char.
       // Find our next '%', and reset the accumulated code point.
       last = k + 3;
-      k = start_of_octets = strchr16(last, '%');
+      k = start_of_octets = strchr16(last, '%', end);
       codepoint = 0;
       break;
 
@@ -167,7 +167,7 @@ size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
     case SAFE_DECODE_UTF8_REJECT:
       // We've encountered an invalid octet series.
       // Find the next '%' after this point, and reset the FSM and codepoint.
-      k = start_of_octets = strchr16(k + 1, '%');
+      k = start_of_octets = strchr16(start_of_octets + 1, '%', end);
       codepoint = 0;
       state = SAFE_DECODE_UTF8_ACCEPT;
       break;
