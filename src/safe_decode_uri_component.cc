@@ -3,13 +3,12 @@
 #include <string.h>
 
 /**
- * The equivalent of strchr for uint16_t strings.
- * http://www.cplusplus.com/reference/cstring/strchr/
+ * Finds the next pointer to c in str.
  */
-uint16_t *strchr16(const uint16_t *str, const uint16_t c, const uint16_t *end) {
+uint16_t *strchr16(const uint16_t *str, const uint16_t *const end, const uint16_t c) {
   while (*str != c) {
     if (++str >= end) {
-      return NULL;
+      return (uint16_t *)end;
     }
   }
   return (uint16_t *)str;
@@ -18,16 +17,35 @@ uint16_t *strchr16(const uint16_t *str, const uint16_t c, const uint16_t *end) {
 /**
  * Decodes a single hex char into it's equivalent decimal value.
  * The value is then left shifted by `shift`.
- * If an invalid hex char is encountered, this returns `255`, which is guaranteed
- * to be rejected by the decoder FSM later on.
+ * If an invalid hex char is encountered, this returns `255`, which is
+ * guaranteed to be rejected by the decoder FSM later on.
  */
 uint8_t hex_char_to_int(const uint16_t c, const uint8_t shift) {
   switch (c) {
-  case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
     return (c - '0') << shift;
-  case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+  case 'A':
+  case 'B':
+  case 'C':
+  case 'D':
+  case 'E':
+  case 'F':
     return (c - 'A' + 10) << shift;
-  case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+  case 'a':
+  case 'b':
+  case 'c':
+  case 'd':
+  case 'e':
+  case 'f':
     return (c - 'a' + 10) << shift;
   default:
     return 255;
@@ -39,8 +57,10 @@ uint8_t hex_char_to_int(const uint16_t c, const uint8_t shift) {
  * to the current decoded index. This is necessary because, as we decode percent-encoded
  * values, we take up less space.
  */
-uint16_t *shift_chars(uint16_t *dest, uint16_t *src, size_t n) {
-  memmove(dest, src, n * sizeof(uint16_t));
+uint16_t *shift_chars(uint16_t *const dest, const uint16_t *const src, size_t n) {
+  if (dest < src) {
+    memmove(dest, src, n * sizeof(uint16_t));
+  }
   return dest + n;
 }
 
@@ -51,7 +71,7 @@ uint16_t *shift_chars(uint16_t *dest, uint16_t *src, size_t n) {
  */
 #define SAFE_DECODE_UTF8_ACCEPT 12
 #define SAFE_DECODE_UTF8_REJECT 0
-uint32_t c_utf8_decode(uint8_t *state, const uint32_t codep, const uint8_t byte) {
+uint32_t c_utf8_decode(uint8_t *const state, const uint32_t codep, const uint8_t byte) {
   static const uint8_t UTF8_DATA[] = {
       // The first part of the table maps bytes to character to a transition.
        0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0,
@@ -100,23 +120,24 @@ uint32_t c_utf8_decode(uint8_t *state, const uint32_t codep, const uint8_t byte)
  * returns `0`.
  */
 size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
-  // The end of the buffer, used for simple out-of-bounds checking.
-  const uint16_t *end = encoded + length;
+  const uint16_t *const begin = encoded;
+  const uint16_t *const end = begin + length;
 
   // The current octet that we are decoding.
-  uint16_t *k = strchr16(encoded, '%', end);
+  uint16_t *k = strchr16(encoded, end, '%');
 
   // The position of the first octet in this series.
   uint16_t *start_of_octets = k;
 
   // The position of the first character after the last decoded octet.
-  // Everything from this point on (up to the iteration index) will need to
-  // be moved leftwards if a new valid octet series is encountered.
-  uint16_t *last = encoded;
+  // Everything from this point on (up to the start of the escape sequence)
+  // will need to be moved leftwards to the insertion point if a new valid
+  // octet series is encountered.
+  uint16_t *start_of_chars = encoded;
 
   // The current "insertion" pointer, where we move our decoded and normal
   // characters.
-  uint16_t *index = encoded;
+  uint16_t *insertion = encoded;
 
   // The current octet series' accumulated code point.
   uint32_t codepoint = 0;
@@ -126,7 +147,7 @@ size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
 
   // If k goes beyond end-2, there's no way we can encounter another valid
   // percent encoded octet.
-  while (k && k < end - 2) {
+  while (k < end - 2) {
     // The character at k is always a '%', guaranteed by the strchr16 search.
     // So, interpret the hex chars as a single value.
     const uint8_t high = hex_char_to_int(*(k + 1), 4);
@@ -141,23 +162,20 @@ size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
       // A full codepoint has been found!
       // We first need to shift any characters leftwards, if any codepoints
       // have been found previously (since they decode into fewer characters).
-      index = shift_chars(index, last, start_of_octets - last);
+      insertion = shift_chars(insertion, start_of_chars, start_of_octets - start_of_chars);
 
       // Push either a single character, or a surrogate character.
       if (codepoint <= 0xFFFF) {
-        *index = codepoint;
-        index++;
+        *insertion++ = codepoint;
       } else {
-        *index = (0xD7C0 + (codepoint >> 10));
-        index++;
-        *index = (0xDC00 + (codepoint & 0x3FF));
-        index++;
+        *insertion++ = (0xD7C0 + (codepoint >> 10));
+        *insertion++ = (0xDC00 + (codepoint & 0x3FF));
       }
 
-      // Now, the last unmoved character is the next char.
+      // Now, the first char after this escape is the next start_of_chars.
       // Find our next '%', and reset the accumulated code point.
-      last = k + 3;
-      k = start_of_octets = strchr16(last, '%', end);
+      start_of_chars = k + 3;
+      k = start_of_octets = strchr16(start_of_chars, end, '%');
       codepoint = 0;
       break;
 
@@ -176,7 +194,7 @@ size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
     case SAFE_DECODE_UTF8_REJECT:
       // We've encountered an invalid octet series.
       // Find the next '%' after this point, and reset the FSM and codepoint.
-      k = start_of_octets = strchr16(start_of_octets + 1, '%', end);
+      k = start_of_octets = strchr16(start_of_octets + 1, end, '%');
       codepoint = 0;
       state = SAFE_DECODE_UTF8_ACCEPT;
       break;
@@ -185,10 +203,10 @@ size_t safe_decode_utf8(uint16_t *encoded, const size_t length) {
 
   // Finally, if there are any normal characters after the last decoded octets,
   // we need to shift them leftwards.
-  index = shift_chars(index, last, end - last);
+  insertion = shift_chars(insertion, start_of_chars, end - start_of_chars);
 
   // Return the total length of decoded string.
-  return index - encoded;
+  return insertion - begin;
 }
 
 /**
