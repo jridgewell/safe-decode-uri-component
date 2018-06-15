@@ -1,19 +1,19 @@
 "use strict";
 
 module.exports = function decodeURIComponent(string) {
-  let k = string.indexOf('%');
+  var k = string.indexOf('%');
   if (k === -1) return string;
 
-  const length = string.length;
-  let decoded = '';
-  let last = 0;
-  let codepoint = 0;
-  let startOfOctets = k;
+  var length = string.length;
+  var decoded = '';
+  var last = 0;
+  var codepoint = 0;
+  var startOfOctets = k;
   state = UTF8_ACCEPT;
 
   while (k > -1 && k < length - 2) {
-    const high = hexCodeToInt(string[k + 1], 4);
-    const low = hexCodeToInt(string[k + 2], 0);
+    var high = hexCodeToInt(string[k + 1], 4);
+    var low = hexCodeToInt(string[k + 2], 0);
     codepoint = decode(codepoint, high | low);
 
     switch (state) {
@@ -47,7 +47,7 @@ module.exports = function decodeURIComponent(string) {
   return decoded + string.substring(last);
 };
 
-const HEX = Object.assign(Object.create(null), {
+var HEX = Object.assign(Object.create(null), {
   '0':  0, '1':  1,
   '2':  2, '3':  3,
   '4':  4, '5':  5,
@@ -61,7 +61,7 @@ const HEX = Object.assign(Object.create(null), {
   'f': 15, 'F': 15,
 });
 function hexCodeToInt(c, shift) {
-  const i = HEX[c];
+  var i = HEX[c];
   return i === undefined ? 255 : i << shift;
 }
 
@@ -71,9 +71,9 @@ function hexCodeToInt(c, shift) {
  * Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
  * See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
  */
-const UTF8_ACCEPT = 12;
-const UTF8_REJECT = 0;
-const UTF8_DATA = [
+var UTF8_ACCEPT = 12;
+var UTF8_REJECT = 0;
+var UTF8_DATA = [
   // The first part of the table maps bytes to character to a transition.
    0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0,
    0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0,
@@ -109,9 +109,9 @@ const UTF8_DATA = [
   0x7F, 0x3F, 0x3F, 0x3F, 0x00, 0x1F, 0x0F, 0x0F, 0x0F, 0x07, 0x07, 0x07,
 ];
 
-let state = UTF8_ACCEPT;
+var state = UTF8_ACCEPT;
 function decode(codepoint, byte) {
-  const type = UTF8_DATA[byte];
+  var type = UTF8_DATA[byte];
   state = UTF8_DATA[256 + state + type];
   return (codepoint << 6) | (byte & UTF8_DATA[364 + type]);
 }
