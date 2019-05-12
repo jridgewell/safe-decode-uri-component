@@ -2,14 +2,14 @@
 
 [![Build Status](https://travis-ci.org/jridgewell/safe-decode-uri-component.svg?branch=master)](https://travis-ci.org/jridgewell/safe-decode-uri-component)
 
-Decodes strings encoded by `encodeURI` and `encodeURIComponent`, without
-throwing errors on invalid escapes.
+Decodes strings that were encoded by `encodeURI` and
+`encodeURIComponent`, without throwing errors on invalid escapes.
 
 ```js
 const base = "http://github.com";
 const query = `?value=${encodeURIComponent('test ⚡')}`;
 
-const url = base + query; // => "http://github.com?value=test%20%E2%9A%A1"
+let url = base + query; // => "http://github.com?value=test%20%E2%9A%A1"
 
 // Now, something happens and the url gets truncated:
 // url = "http://github.com?value=test%20%E2%9A%A"
@@ -17,10 +17,10 @@ const url = base + query; // => "http://github.com?value=test%20%E2%9A%A1"
 decodeURIComponent(url); // THROWS ERROR
 ```
 
-Truncating "useless" params from a URL happen for any number of reasons.
-Or, maybe a your user just typed in a bad URL? Either way, it's annoying
-when all you want is the decoded value, treating invalid escapes as if
-they were just regular characters.
+Truncating "useless" characters from a URL happens for any number of
+reasons.  Or, maybe your user just typed in a bad URL? Either way, it's
+annoying when all you want is the decoded value, treating invalid
+escapes as if they were just regular characters.
 
 
 ```js
