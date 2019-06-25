@@ -7,6 +7,9 @@ const suite = new benchmark.Suite();
 const short = encodeURIComponent('tést💩🇺🇸');
 const medium = short.repeat(500);
 const long = medium.repeat(500);
+const shortWithout = 'abcd';
+const mediumWithout = shortWithout.repeat(500);
+const longWithout = mediumWithout.repeat(500);
 
 // add tests
 suite
@@ -29,6 +32,27 @@ suite
 })
 .add('Long String (safe)', function() {
   decode(long);
+})
+
+.add('Short String (without percents) (native)', function() {
+  decodeURIComponent(shortWithout);
+})
+.add('Short String (without percents) (safe)', function() {
+  decode(shortWithout);
+})
+
+.add('Medium String (without percents) (native)', function() {
+  decodeURIComponent(mediumWithout);
+})
+.add('Medium String (without percents) (safe)', function() {
+  decode(mediumWithout);
+})
+
+.add('Long String (without percents) (native)', function() {
+  decodeURIComponent(longWithout);
+})
+.add('Long String (without percents) (safe)', function() {
+  decode(longWithout);
 })
 
 // add listeners
