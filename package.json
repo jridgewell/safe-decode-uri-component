@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node tests/index",
     "benchmark": "node benchmark",
-    "install": "prebuild-install || node-gyp rebuild",
+    "install": "prebuild-install --runtime napi || node-gyp rebuild",
     "rebuild": "prebuild --compile",
     "prebuild": "prebuild --all --runtime napi --strip --verbose"
   },
