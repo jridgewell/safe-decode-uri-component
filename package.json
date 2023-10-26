@@ -37,13 +37,13 @@
   },
   "gypfile": true,
   "devDependencies": {
-    "benchmark": "^2.1.4",
-    "microtime": "^3.0.0",
-    "prebuild": "^9.0.0"
+    "benchmark": "2.1.4",
+    "microtime": "3.1.1",
+    "prebuild": "12.1.0"
   },
   "dependencies": {
-    "bindings": "^1.5.0",
-    "node-gyp": "^5.0.1",
-    "prebuild-install": "^5.3.0"
+    "bindings": "1.5.0",
+    "node-gyp": "9.4.0",
+    "prebuild-install": "7.1.1"
   }
 }
