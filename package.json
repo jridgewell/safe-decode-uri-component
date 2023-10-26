@@ -7,8 +7,14 @@
     "test": "node tests/index",
     "benchmark": "node benchmark",
     "install": "prebuild-install --runtime napi || node-gyp rebuild",
+    "build": "prebuild --compile",
     "rebuild": "prebuild --compile",
-    "prebuild": "prebuild --all --runtime napi --strip --verbose"
+    "prebuild": "prebuild --all --runtime napi --strip --verbose",
+    "prebuild:mac-x64": "npm run prebuild -- --arch x64 --platform darwin",
+    "prebuild:mac-apple": "npm run prebuild -- --arch arm64 --platform darwin",
+    "prebuild:linux": "npm run prebuild -- --arch x64 --platform linux",
+    "prebuild:windows": "npm run prebuild -- --arch x64 --platform windows",
+    "prepublishOnly": "run-s prebuild:*"
   },
   "repository": {
     "type": "git",
